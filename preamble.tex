@@ -1,0 +1,98 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{fourier} % Fourier font
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage[most]{tcolorbox}
+\usepackage{amsthm, amsmath, amssymb}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}
+\usepackage{titling} 
+
+% Dark mode colors
+\definecolor{bgcolor}{HTML}{F5EEEF}
+\definecolor{textcolor}{HTML}{1E1E1E}
+\definecolor{defcolor}{HTML}{E86873}
+\definecolor{thmcolor}{HTML}{0A9396}
+\definecolor{lemcolor}{HTML}{34EB52}
+\definecolor{corcolor}{HTML}{9B4AF7}
+\definecolor{probcolor}{HTML}{EE9B00}
+\definecolor{excolor}{HTML}{0C00F5}
+
+% Background and text color
+\pagecolor{bgcolor}
+\color{textcolor}
+
+% No paragraph indentation
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.7em}
+
+% Theorem box styles
+\tcbset{
+  enhanced,
+  colback=bgcolor,
+  colframe=thmcolor,
+  coltext=black,
+  coltitle=white,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  left=1em,
+  right=1em,
+  top=0.7em,
+  bottom=0.7em,
+  before skip=10pt,
+  after skip=10pt,
+}
+
+% Theorem environments with colored boxes
+\newtcbtheorem[number within=section]{thm}{Theorem}{
+  colframe=thmcolor, colback=thmcolor!15!bgcolor
+}{thm} % The 'thm' here is the *prefix* for the label
+
+\newtcbtheorem[number within=section]{defn}{Definition}{
+  colframe=defcolor, colback=defcolor!15!bgcolor
+}{def} % The 'def' here is the *prefix* for the label
+
+\newtcbtheorem[number within=section]{lem}{Lemma}{
+  colframe=lemcolor, colback=lemcolor!15!bgcolor
+}{lem}
+
+\newtcbtheorem[number within=section]{cor}{Corollary}{
+  colframe=corcolor, colback=corcolor!15!bgcolor
+}{cor}
+
+\newtcbtheorem[number within=section]{prob}{Problem}{
+  colframe=probcolor, colback=probcolor!15!bgcolor
+}{prob}
+
+\newtcbtheorem[number within=section]{ex}{Example}{
+  colframe=excolor, colback=excolor!15!bgcolor
+}{ex}
+
+% Proof environment 
+\renewenvironment{proof}[1][\proofname]{%
+  \par\pushQED{\qed}\normalfont\topsep6pt \trivlist
+  \item[\hskip\labelsep\itshape #1.]\ignorespaces
+}{%
+  \popQED\endtrivlist\addvspace{6pt}
+}
+
+% Cleveref name formats for tcolorbox environments
+\crefname{thm}{theorem}{theorems}
+\Crefname{thm}{Theorem}{Theorems}
+
+\crefname{def}{definition}{definitions}
+\Crefname{def}{Definition}{Definitions}
+
+\crefname{lem}{lemma}{lemmas}
+\Crefname{lem}{Lemma}{Lemmas}
+
+\crefname{cor}{corollary}{corollaries}
+\Crefname{cor}{Corollary}{Corollaries}
+
+\crefname{prob}{problem}{problems}
+\Crefname{prob}{Problem}{Problems}
+
+\crefname{ex}{example}{examples}
+\Crefname{ex}{Example}{Examples}
