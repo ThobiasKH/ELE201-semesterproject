@@ -8,41 +8,37 @@ from collections import deque
 # ----------------------
 # Configuration
 # ----------------------
-COM_PORT = '/dev/ttyACM0'   # Change to your port (Windows: COM7)
+COM_PORT = '/dev/ttyACM0'   
 BAUD_RATE = 115200
-BUFFER_SIZE = 100            # Number of points to display
+BUFFER_SIZE = 100            
 
 # ----------------------
-# Set up serial connection
+# Serial connection
 # ----------------------
 ser = serial.Serial(COM_PORT, BAUD_RATE, timeout=1)
 
 # ----------------------
 # Data storage
 # ----------------------
-data = deque([0]*BUFFER_SIZE, maxlen=BUFFER_SIZE)  # Circular buffer
+data = deque([0]*BUFFER_SIZE, maxlen=BUFFER_SIZE) # Lovely circular buffer 
 
 # ----------------------
-# Set up plot
+# Plot
 # ----------------------
-plt.style.use('ggplot')       # simple and safe
+plt.style.use('ggplot')       
 fig, ax = plt.subplots()
 line, = ax.plot(range(BUFFER_SIZE), data)
-ax.set_ylim(0, 4095)  # 12-bit ADC
+ax.set_ylim(0, 4095) # Remember to change if we're not sampling 12-bits (prob won't)  
 ax.set_xlabel('Samples')
 ax.set_ylabel('ADC Value')
 ax.set_title('Live ADC Readings')
 
-# ----------------------
-# Update function
-# ----------------------
 def update(frame):
     try:
         line_bytes = ser.readline()
         if line_bytes:
             line_str = line_bytes.decode('utf-8').strip()
-            # Expect format: "ADC raw = 1234"
-            if line_str.startswith("ADC raw"):
+            if line_str.startswith("ADC raw"): # NOTE TO SELF: Probably more efficient to send data w/o "ADC raw" 
                 value = int(line_str.split('=')[1].strip())
                 data.append(value)
                 line.set_ydata(data)

@@ -71,7 +71,6 @@ static void MX_USART3_UART_Init(void);
   * @retval int
   */
 
-char msg[50];
 int main(void)
 {
 
@@ -114,7 +113,7 @@ int main(void)
       char msg[50];
       int len = sprintf(msg, "ADC raw = %lu\r\n", adc_value);
       HAL_UART_Transmit(&huart3, (uint8_t*)msg, len, HAL_MAX_DELAY);
-      HAL_Delay(20);
+      HAL_Delay(250);
 
     }
   /* USER CODE END 3 */
