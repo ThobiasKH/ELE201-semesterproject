@@ -71,6 +71,7 @@ static void MX_USART3_UART_Init(void);
   * @retval int
   */
 
+char msg[50];
 int main(void)
 {
 
@@ -110,7 +111,6 @@ int main(void)
       adc_value = HAL_ADC_GetValue(&hadc1); 
       voltage = (float)adc_value * (3.3f / 4095.0f);
       
-      char msg[50];
       int len = sprintf(msg, "ADC raw = %lu\r\n", adc_value);
       HAL_UART_Transmit(&huart3, (uint8_t*)msg, len, HAL_MAX_DELAY);
       HAL_Delay(250);

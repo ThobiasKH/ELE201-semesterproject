@@ -1,4 +1,5 @@
 \input{preamble.tex}
+\usepackage{graphicx}
 
 \title{\huge{ELE201 Semester Project}}
 \author{\LARGE{Thobias Høivik}}
@@ -97,7 +98,65 @@ foundation. The most relevant tests include:
 Each of these tests returns a $p$-value indicating how likely the 
 observed sequence could occur under true randomness.
 
-\subsection{Tentative Predictions}
+\newpage
+\subsection{Theoretical Modeling of Analog Noise} 
+To justify that the least significant bits of our ADC contains 
+randomness, we model the analog sensor output as a combination of 
+deterministic signal and noise: 
+\[ 
+    V_{\text{ADC}}(t) = V_{\text{Signal}}(t) + V_{\text{Noise}}(t)
+\]
+
+\begin{itemize}
+    \item \(V_{\text{Signal}}\) represents the slowly varying, 
+        predictable component (e.g. ambient light level in the case 
+        of photoresistor). 
+    \item \(V_{\text{Noise}}\) represents the unpredictable physical 
+        noise (thermal-, shot noise, quantization error, 
+        sensor-specific noise).
+\end{itemize}
+
+We assume that $V_{\text{Noise}}$ is a zero-mean gaussian random 
+variable: 
+\[ 
+    V_{\text{Noise}}(t) \sim \mathcal N(0, \sigma^2) 
+\]
+
+This assumption is fairly reasonable for electronic circuits, 
+where thermal noise and shot noise dominate at small scales 
+(citation desparately needed).
+
+The \textbf{ADC quantization} transforms the continuous voltage 
+into discrete levels: 
+\begin{align*}
+    X = \text{ADC}(V_{\text{ADC}}) \in \{0,1,\dots,2^{12}-1\}
+    \\
+    (\text{in the case where we sample at } 12-\text{bits})
+\end{align*}
+
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\linewidth]{./images/quantization.png} 
+    \caption{Quantization of analog signal.}
+    \label{fig:quantization} 
+\end{figure}
+(NOTE: REMEMBER TO ASK Gizem HOW TO CITE THIS IMAGE)
+
+If we denote the least significant bit (LSB) of \(X\) 
+by \(\text{LSB}(X)\), then under the Guassian noise model, 
+the probability that the LSB is \(1\) is approximately 
+\[ 
+    P(\text{LSB}(X) = 1) \approx \frac{1}{2} 
+\]
+
+This is because, if we consider a single interval 
+\([k\Delta V, (k+1)\Delta V)\), if $V_\text{Noise}$ is uniformly 
+distributed across this interval, then the probability that the 
+that we round to $(k+1)\Delta V$ or $k\Delta V$ is equal and one 
+of these will be odd. Hence there is a roughly $1/2$ chance 
+that the least significant bit will be a $1$.
+
 
 \newpage
 \section{Implementation}
@@ -201,7 +260,8 @@ We briefly discuss:
 
 \newpage
 \section{Conclusion}
-We summarize:
+We summarize:Fundamentals of Precision ADC
+Noise Analysis
 \begin{itemize}
     \item Theoretical feasibility of analog-sensor-based TRNGs.
     \item Experimental results and limitations.
@@ -217,6 +277,22 @@ We summarize:
 
 \newpage
 \section*{References}
-(Include IEEE papers, arXiv articles, and videos cited earlier.)
+
+NOTE: Some stuff I've looked at 
+\begin{verbatim}
+Harvesting_Entropy_for_Random_Number_Generation_fo.pdf 
+
+https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-22r1a.pdf 
+(NIST-800-22)
+
+A Mathematical Theory of Communication
+By C. E. SHANNON (Entropy)
+
+Fundamentals of Precision ADC
+Noise Analysis
+Texas Instruments (Noise is inherent in all electrical systems)
+\end{verbatim}
+
+
 \end{document}
 
