@@ -1,8 +1,12 @@
 \input{preamble.tex}
 \usepackage{graphicx}
 
-\title{\huge{ELE201 Semester Project}}
-\author{\LARGE{Thobias Høivik}}
+
+
+\title{\huge{Semester Project}}
+\author{\LARGE{Thobias Høivik} 
+    \\ \large{Western Norway University of Applied Sciences} 
+\\ \large{ELE201: Microcontrollers and Data Networks}}
 \date{}
 
 \begin{document}
@@ -50,53 +54,32 @@ $$
     H(X) = - \sum_{x \in \chi} p(x) \log_2 p(x).
 $$
 \end{defn}
-
-Entropy measures the uncertainty of a random variable. 
-For a binary sequence, $H(X) = 1$ indicates perfectly balanced and 
-maximally unpredictable bits.
-
-Intuitively, high entrop should mean unpredictable bits, while 
-low entropy should mean that the bits are structured and predictable.
-This sounds very good for our purposes, but if we look at 
-a string like "$010101010101\dots$", where we alternate 
-$0$s and $1$s, we get a shannon entropy of $1$ which is as high 
-as we can go. However, this string of bits very clearly has 
-a predictable structure, which entropy alone cannot take into account.
-
-\begin{defn}{Min-Entropy}{}
-The min-entropy of a random variable $X$ is
-$$
-H_{\text{min}}(X) = -\log_2 \left(\max_x p(x)\right),
-$$
-representing the worst-case predictability of any outcome.
-\end{defn}
+(as introduced by Shannon \cite{Shannon1948} 
+and discussed in \cite{Gray1990,StatisticShowTo}).
+Entropy is a central meassure in information theory pertaining 
+to the randomness of data and it will be referenced extensively 
+throughout this text.
 
 \subsection{True vs. Pseudo Randomness}
 A pseudo-random number generator (PRNG) produces deterministic 
 sequences 
 from an initial seed, while a true random number generator (TRNG) 
 relies 
-on physical entropy. 
+on physical entropy \cite{HardwareRNGOverview}. 
 For hardware-based RNGs, ensuring unbiased and unpredictable output 
 requires:
 \begin{itemize}
     \item High-quality analog entropy sources.
-    \item Proper sampling rates and whitening.
     \item Statistical post-processing.
 \end{itemize}
 
-\subsection{Statistical Tests of Randomness}
-We use the NIST SP 800-22 statistical test suite as a theoretical 
-foundation. The most relevant tests include:
-\begin{itemize}
-    \item Frequency (Monobit) Test
-    \item Runs Test
-    \item Autocorrelation Test
-    \item Approximate Entropy Test
-    \item Linear Complexity Test
-\end{itemize}
-Each of these tests returns a $p$-value indicating how likely the 
-observed sequence could occur under true randomness.
+\subsection{Hypothesis}
+We believe that due to the inherit noise of electrical circuits 
+that dominate at low frequencies, the 
+least significant bits (LSBs) of our signal should be a source of 
+high entropy. Then, with further post-processing we should 
+get a high-quality source of random numbers which can be applied 
+in processes which require randomness.
 
 \newpage
 \subsection{Theoretical Modeling of Analog Noise} 
@@ -116,23 +99,25 @@ deterministic signal and noise:
         sensor-specific noise).
 \end{itemize}
 
-We assume that $V_{\text{Noise}}$ is a zero-mean gaussian random 
-variable: 
+The noise, which is the sum of thermal-, shot-, and other electronic 
+noise is typically modeled as a Gaussian random variable 
+\cite{Gundersen2019}:
 \[ 
-    V_{\text{Noise}}(t) \sim \mathcal N(0, \sigma^2) 
+    V_{\text{Noise}}(t) \sim \mathcal N(0, \sigma^2_{\text{Noise}}) 
 \]
-
-This assumption is fairly reasonable for electronic circuits, 
-where thermal noise and shot noise dominate at small scales 
-(citation desparately needed).
 
 The \textbf{ADC quantization} transforms the continuous voltage 
 into discrete levels: 
 \begin{align*}
     X = \text{ADC}(V_{\text{ADC}}) \in \{0,1,\dots,2^{12}-1\}
-    \\
-    (\text{in the case where we sample at } 12-\text{bits})
 \end{align*}
+
+The voltage corresponding to one LSB (least significant bit) step 
+is 
+\[ 
+    \Delta V = \frac{V_{\text{ref}}}{2^{12}}
+\]
+for a \(12\)-bit ADC with reference voltage \(V_{\text{ref}}\).
 
 
 \begin{figure}[h]
@@ -141,52 +126,126 @@ into discrete levels:
     \caption{Quantization of analog signal.}
     \label{fig:quantization} 
 \end{figure}
-(NOTE: REMEMBER TO ASK Gizem HOW TO CITE THIS IMAGE)
 
-If we denote the least significant bit (LSB) of \(X\) 
-by \(\text{LSB}(X)\), then under the Guassian noise model, 
-the probability that the LSB is \(1\) is approximately 
+The randomness of the extracted bits is meassured by the 
+Shannon Entropy. For a discrete random variable \(X\) with 
+\(k\) possible outcomes, the maximum possible entropy 
+\(H_{\text{MAX}} = \log_2(k)\) bits. 
+
+We extract the \(4\) LSBs, which gives \(2^4 = 16\) possible 
+outcomes from \(0000_b \to 1111_b\). The maximum entropy then is 
 \[ 
-    P(\text{LSB}(X) = 1) \approx \frac{1}{2} 
+    H_{\text{MAX}} = 4 \text{ bits}
 \]
 
-This is because, if we consider a single interval 
-\([k\Delta V, (k+1)\Delta V)\), if $V_\text{Noise}$ is uniformly 
-distributed across this interval, then the probability that the 
-that we round to $(k+1)\Delta V$ or $k\Delta V$ is equal and one 
-of these will be odd. Hence there is a roughly $1/2$ chance 
-that the least significant bit will be a $1$.
+Maximum entropy is achieved if the the probability of 
+observing any of the \(16\) outcomes is uniform
+\cite{Gray1990,StatisticShowTo}:
+\[ 
+    P(D_{\text{LSB}} = i) = \frac{1}{16} \text{ for } 0 \leq i \leq 15
+\]
+
+To achieve a near-uniform distribution across the \(16\) LSB 
+states, the standard deviation of the noise \(\sigma_{\text{Noise}}\)
+must be large enough to span multiple quantization steps.
+
+Let \(\Delta V_{4-\text{bit}}\) be the voltage corresponding to 
+the \(4\) LSBs: 
+\[ 
+    \Delta V_{4-\text{bit}} = 16\Delta V
+\]
+
+Consider an input voltage \(V_{\text{ADC}}\) that falls within 
+a \(\Delta V_{4-\text{bit}}\) window. The probability that 
+the resulting digital word \(D\) falls into a specific \(4\)-bit 
+LSB state \(i\) depends on the area under the Gaussian Probability 
+Density function of the noise that falls into the corresponding 
+voltage interval \(I_i\). 
+
+The critical condition for near-maximum entropy is then: 
+\[ 
+    \sigma_{\text{Noise}} \gg \Delta V
+\]
+
+If the noise standard deviation is significantly larger than 
+the LSB step size then the Gaussian noise distribution becomes 
+"smeared" across multiple LSB intervals. Since the noise is 
+zero-mean and \(\sigma_{\text{Noise}}\) is large, the probability 
+of the total input \(V_{\text{ADC}}\) falling into any one 
+LSB interval \(I_i\) is nearly equal to the probability of 
+it falling into an adjacent \(I_{i \pm 1}\). 
+
+NOTE: Maybe do FFT on signal to show how noise dominates high-freq 
+components.
 
 
 \newpage
 \section{Implementation}
 \subsection{Hardware Setup}
-We will use the STM32 microcontroller, connected to one or more analog 
-sensors. Candidate sensors include:
-\begin{itemize}
-    \item Microphone or sound sensor.
-    \item Light-dependent resistor (LDR).
-    \item Temperature sensor.
-\end{itemize}
+We will use the STM32f767zi microcontroller, connected to a 
+photoresistor.
 
 The microcontroller samples the analog voltage via the ADC and 
 stores or 
 streams the digital values over a serial or network interface.
-For now we will be working with a light sensor, sampling 
-at $12$ bits and looking at bits in the lower end of the 
-range as they will be most prone to interference and noise.
+We will be sampling at \(12\)-bits, keeping the \(4\) least 
+significant bits as we believe these will be most susceptible to 
+noise.
+
+NOTE: REMEMBER TO PUT WIRING DIAGRAM HERE.
 
 \subsection{Data Transmission}
 Data is transmitted from the STM32 to a computer for analysis. 
-This can be done using:
-\begin{itemize}
-    \item UART/Serial connection.
-    \item Ethernet or WiFi (via ESP module or similar).
-\end{itemize}
+In our experimentation we use USART/Serial Connection using 
+a micro-usb connection from the microcontroller to a computer.
 
-For our purpose of analyzing the data for randomness a serial 
-connection will do and we will use UART, sending the data 
-to a computer where we can analyze the data.
+\newpage
+\section{Results and Analysis}
+\subsection{Results from the Raw Signal}
+We begin by analyzing the apparent randomness 
+of the raw signal. 
+
+In our experimentation we first use Python with the serial library 
+to read the incoming data and matplotlib to plot the signal 
+over time.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.6\linewidth]{./images/RAW_READINGS_PLOT.png} 
+    \caption{Plot of the raw signal over time}
+    \label{fig:raw_signal_plot} 
+\end{figure}
+
+As we can see in this plot, while the signal remains relatively stable,
+reflecting the stable light level we were testing against, 
+there are definite micro-jitters present. This is a good 
+sign and is almost ceirtainly due to the noise which we predicted 
+would dominate at small levels.
+
+We do have to take into account the fact that the micro-jitters 
+might be due to slight fluctuations of the ambient light-level in 
+our tests. To mitigate this possibility we will from this time 
+forward be testing with the photoresistor covered with electrical 
+tape. 
+
+\newpage
+Now we look at the observed probabilities pertaining to 
+the \(4\) LSBs. We want a roughly equal probability that a given 
+bit in the \(4\) LSBs is \(0\) or \(1\).
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.6\linewidth]{./images/LSB_HISTOGRAM_COVERED_239.png} 
+    \caption{Histogram of 4 LSBs with photoresistor covered}
+    \label{fig:histogram_LSB_covered}
+\end{figure}
+
+NOTE: Remember to redo this histogram with more samples.
+
+As we can see there appears to be a roughly equal chance that a 
+given bit in the \(4\) LSBs is \(0\) or \(1\), pointing towards 
+high entropy in the LSBs.
+ 
 
 \subsection{Processing}
 Our goal is to transform the raw data stream 
@@ -230,11 +289,6 @@ statistically perfect random stream.
         \end{itemize}
 \end{enumerate}
 
-
-
-\newpage
-\section{Results and Analysis}
-
 \subsection{Network Design}
 A possible setup:
 \begin{itemize}
@@ -276,23 +330,38 @@ Noise Analysis
 \end{itemize}
 
 \newpage
-\section*{References}
+\begin{thebibliography}{99}  
+    \raggedright
 
-NOTE: Some stuff I've looked at 
-\begin{verbatim}
-Harvesting_Entropy_for_Random_Number_Generation_fo.pdf 
+\bibitem{Shannon1948}
+C. E. Shannon,
+\textit{A Mathematical Theory of Communication},
+Bell System Technical Journal,
+vol. 27, pp. 379--423, 623--656, 1948.
 
-https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-22r1a.pdf 
-(NIST-800-22)
+\bibitem{Gray1990}
+R. M. Gray,
+\textit{Entropy and Information Theory},
+Springer, 1990.
 
-A Mathematical Theory of Communication
-By C. E. SHANNON (Entropy)
+\bibitem{HardwareRNGOverview}
+Cerberus Security,
+\textit{Hardware Random Number Generators},
+2020.
+\url{https://cerberus-laboratories.com/blog/random_number_generators/}
 
-Fundamentals of Precision ADC
-Noise Analysis
-Texas Instruments (Noise is inherent in all electrical systems)
-\end{verbatim}
+\bibitem{StatisticShowTo}
+Statistics How To,
+\textit{Shannon Entropy Definition},
+\url{https://www.statisticshowto.com/shannon-entropy/}
 
+\bibitem{Gundersen2019}
+G. Gundersen,
+\textit{Random Noise and the Central Limit Theorem},
+Blog post, 01 February 2019.
+\url{https://gregorygundersen.com/blog/2019/02/01/clt/}
+
+\end{thebibliography}
 
 \end{document}
 
