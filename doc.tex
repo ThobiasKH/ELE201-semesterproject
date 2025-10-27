@@ -272,6 +272,47 @@ LSBs exibit a maximum entropy (\(1\)), then taking
 \(4\) bits to the left should give us a 
 \(256\) bit number with maximum entropy.
 
+In this section we will examine \(4\) central metrics in 
+determining the quality of the \(256\)-bit number. 
+\begin{enumerate}
+    \item \textbf{Entropy.} Entropy is still important and 
+        we want an entropy as close to \(1\) as possible in 
+        this case. 
+    \item \textbf{Bit frequency.} We examine how many 0s vs. 1s 
+        there are in a given bit-string. A \(50\)/\(50\) 
+        distribution is obviously desireable.
+    \item \textbf{Autocorrelation.} The correlation between 
+        consecutive bits is important and we want 
+        to be as close to \(0\) as possible, indicating 
+        no correlation/pattern in consecutive bits.
+    \item \textbf{Runs.} Runs are the number of "blocks" of like 
+        bits. For example \(0111110_b\) contains \(3\) blocks, 
+        the first \(0\), the consecutive \(1\)s and the final 
+        \(0\). A run of \(256\) is bad because it indicates 
+        alternating \(0\)s and \(1\)s. \(1\) is also very bad 
+        as it indicates that the string only has \(0\)s or \(1\)s.
+        Hence we want a run-count somewhere in the middle of these 
+        extremes.
+\end{enumerate}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\linewidth]{./images/256SUITE_PLOT.png} 
+    \caption{Readings of various metrics in 256-bit number.}
+    \label{fig:256_suite}
+\end{figure}
+
+Our readings show that our \(256\)-bit numbers tend to 
+hover around the desired values, never reaching any 
+disconcerting values during the test that produced this 
+plot. During this test, \(434\) numbers were analyzed with 
+the following averages: 
+\begin{enumerate}
+    \item Average Entropy: \(0.987\) 
+    \item Average Bit Frequency: \(0.472\)
+    \item Average Autocorrelation: \(-0.045\) 
+    \item Average Runs: \(131.990\)
+\end{enumerate}
 
 
 

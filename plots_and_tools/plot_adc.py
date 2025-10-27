@@ -38,10 +38,9 @@ def update(frame):
         line_bytes = ser.readline()
         if line_bytes:
             line_str = line_bytes.decode('utf-8').strip()
-            if line_str.startswith("ADC raw"): # NOTE TO SELF: Probably more efficient to send data w/o "ADC raw" 
-                value = int(line_str.split('=')[1].strip())
-                data.append(value)
-                line.set_ydata(data)
+            value = int(line_str)
+            data.append(value)
+            line.set_ydata(data)
     except Exception as e:
         print("Error:", e)
     return line,

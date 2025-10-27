@@ -111,7 +111,7 @@ int main(void)
       adc_value = HAL_ADC_GetValue(&hadc1); 
       voltage = (float)adc_value * (3.3f / 4095.0f);
       
-      int len = sprintf(msg, "ADC raw = %lu\r\n", adc_value);
+      int len = sprintf(msg, "%lu\r\n", adc_value);
       HAL_UART_Transmit(&huart3, (uint8_t*)msg, len, HAL_MAX_DELAY);
       HAL_Delay(0);
 

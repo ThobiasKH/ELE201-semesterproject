@@ -57,10 +57,8 @@ def update(frame):
             return [time_line, combined_line] + freq_lines + [text_total, text_rate]
 
         line_str = line_bytes.decode('utf-8', errors='ignore').strip()
-        if not line_str.startswith("ADC raw"):
-            return [time_line, combined_line] + freq_lines + [text_total, text_rate]
 
-        adc_value = int(line_str.split('=')[1].strip())
+        adc_value = int(line_str)
         signal_buffer.append(adc_value)
         timestamps.append(time.time())
         total_samples += 1

@@ -51,8 +51,8 @@ def update(frame):
             return tuple(bars) + (text_total, text_entropy)
 
         line_str = line_bytes.decode('utf-8', errors='ignore').strip()
-        if line_str.startswith("ADC raw"):
-            adc_value = int(line_str.split('=')[1].strip())
+        if True:
+            adc_value = int(line_str)
             lsb_bits = [(adc_value >> i) & 1 for i in range(4)]  # Bit0..Bit3
             data_bits.append(lsb_bits)
             total_samples += 1
