@@ -175,9 +175,21 @@ of the total input \(V_{\text{ADC}}\) falling into any one
 LSB interval \(I_i\) is nearly equal to the probability of 
 it falling into an adjacent \(I_{i \pm 1}\). 
 
-NOTE: Maybe do FFT on signal to show how noise dominates high-freq 
-components.
 
+
+Just as the least significant bits of the digitized signal capture the high-entropy contributions of analog noise, 
+we can also assess the entropy of the signal in the frequency domain. 
+By applying the Fourier transform to the analog signal \(x(t)\) and analyzing the normalized power spectral density 
+\(p(f_i) = P(f_i) / \sum_j P(f_j)\), we can define the \textit{spectral entropy}
+\[
+H_{\text{freq}} = - \sum_i p(f_i) \log_2 p(f_i).
+\]
+A high spectral entropy indicates that the signal’s power is spread across many frequencies, 
+consistent with broadband or white noise, while a low entropy suggests structured, 
+periodic, or deterministic components \cite{Inouye1991}. 
+Thus, the Fourier spectrum provides an alternative viewpoint for identifying regions of high randomness in the signal.
+
+NOTE: REMEMBER TO WRITE PYTHOM PROGRAM TO SHOW THIS
 
 \newpage
 \section{Implementation}
@@ -360,6 +372,13 @@ G. Gundersen,
 \textit{Random Noise and the Central Limit Theorem},
 Blog post, 01 February 2019.
 \url{https://gregorygundersen.com/blog/2019/02/01/clt/}
+
+
+\bibitem{Inouye1991}
+T. Inouye, K. Shinosaki, et al.,
+\textit{Quantification of EEG irregularity by use of the entropy of the power spectrum},
+Electroencephalography and Clinical Neurophysiology, 79(3):204–210, 1991.
+\url{https://doi.org/10.1016/0013-4694(91)90138-6}
 
 \end{thebibliography}
 
