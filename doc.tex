@@ -177,19 +177,6 @@ it falling into an adjacent \(I_{i \pm 1}\).
 
 
 
-Just as the least significant bits of the digitized signal capture the high-entropy contributions of analog noise, 
-we can also assess the entropy of the signal in the frequency domain. 
-By applying the Fourier transform to the analog signal \(x(t)\) and analyzing the normalized power spectral density 
-\(p(f_i) = P(f_i) / \sum_j P(f_j)\), we can define the \textit{spectral entropy}
-\[
-H_{\text{freq}} = - \sum_i p(f_i) \log_2 p(f_i).
-\]
-A high spectral entropy indicates that the signal’s power is spread across many frequencies, 
-consistent with broadband or white noise, while a low entropy suggests structured, 
-periodic, or deterministic components \cite{Inouye1991}. 
-Thus, the Fourier spectrum provides an alternative viewpoint for identifying regions of high randomness in the signal.
-
-NOTE: REMEMBER TO WRITE PYTHOM PROGRAM TO SHOW THIS
 
 \newpage
 \section{Implementation}
@@ -204,7 +191,13 @@ We will be sampling at \(12\)-bits, keeping the \(4\) least
 significant bits as we believe these will be most susceptible to 
 noise.
 
-NOTE: REMEMBER TO PUT WIRING DIAGRAM HERE.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.6\linewidth]{./images/WIRING_DIAGRAM_LIGHT.png} 
+    \caption{Diagram}
+    \label{fig:wire_diagram} 
+\end{figure}
 
 \subsection{Data Transmission}
 Data is transmitted from the STM32 to a computer for analysis. 
@@ -223,7 +216,7 @@ over time.
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.6\linewidth]{./images/RAW_READINGS_PLOT.png} 
+    \includegraphics[width=0.9\linewidth]{./images/LIVE_READINGS_SMALL_WINDOW.png} 
     \caption{Plot of the raw signal over time}
     \label{fig:raw_signal_plot} 
 \end{figure}
@@ -247,59 +240,40 @@ bit in the \(4\) LSBs is \(0\) or \(1\).
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.6\linewidth]{./images/LSB_HISTOGRAM_COVERED_239.png} 
+    \includegraphics[width=0.9\linewidth]{./images/HISTOGRAM_WITH_ENTROPY.png} 
     \caption{Histogram of 4 LSBs with photoresistor covered}
     \label{fig:histogram_LSB_covered}
 \end{figure}
 
-NOTE: Remember to redo this histogram with more samples.
-
 As we can see there appears to be a roughly equal chance that a 
 given bit in the \(4\) LSBs is \(0\) or \(1\), pointing towards 
 high entropy in the LSBs.
- 
 
+Furthermore, we can see that each bit has an entropy of \(1\)
+and the sum of the \(4\) LSBs entropies is \(4\). 
+As we determined earlier the maximum entropy \(H_{\text{MAX}} = 4\), 
+meaning that the \(4\) LSBs exibit maximum entropy.
+ 
 \subsection{Processing}
 Our goal is to transform the raw data stream 
 (which is \textbf{biased} and \textbf{predictable}) into a shorter, 
 statistically perfect random stream.
+So far we've already done some processing in discarding all, but 
+the \(4\) LSBs. 
 
-\begin{enumerate}
-    \item Raw Bit Extraction 
-        \begin{itemize}
-            \item \textbf{Technique:} Only use the least significant
-                bits of the ADC output. 
-            \item The LSBs are dominated by the desired random noise 
-                sources and are less influenced by the much larger 
-                and more predictable signal 
-                (e.g. light level in the case of a light sensor).
-                Thus the MSBs should be discarded entirely as they 
-                should exibit fairly low entropy.
-        \end{itemize}
+As discussed previously, the \(4\) LSBs are a good source of entropy, 
+but using \(4\) bits at a time is not sensible as it 
+is relatively easy to predict given the small number of combinations 
+at only \(16\).
 
-    \item Entropy Conditioning (Post-Processing) 
-        Since the LSBs will more than likely still contain 
-        residual bias and correlation we require a powerful 
-        \textbf{Entropy Extractor} for cryptographic quality.
-        \begin{itemize}
-            \item \textbf{XOR Folding:}
-                XOR a bit with one a few steps behind. 
-                E.g. $\text{Bit}_{\text{Out}} = 
-                \text{Bit}_i \oplus \text{Bit}_{i-N}$, 
-                where $N$ is chosen to be slightly larger than 
-                the observed correlation length.
+Now, since we have observed that each individual bit of the 
+LSBs exibit a maximum entropy (\(1\)), then taking 
+\(64\) samples and appending each by bit-shifting 
+\(4\) bits to the left should give us a 
+\(256\) bit number with maximum entropy.
 
-            \item \textbf{Cryptographic Hash Extractor 
-                (NIST SP 800-90B):}
-                Collect a large buffer of $L$ raw bits. 
-                Estimate $H_{\text{min}}$ per bit. Take the buffer, 
-                and hash it (e.g. SHA-256) to produce a fixed-length 
-                output.
 
-                Ths downside with this approach is that we have to 
-                sample many times to get a sufficiently large buffer.
-        \end{itemize}
-\end{enumerate}
+
 
 \subsection{Network Design}
 A possible setup:
@@ -374,11 +348,6 @@ Blog post, 01 February 2019.
 \url{https://gregorygundersen.com/blog/2019/02/01/clt/}
 
 
-\bibitem{Inouye1991}
-T. Inouye, K. Shinosaki, et al.,
-\textit{Quantification of EEG irregularity by use of the entropy of the power spectrum},
-Electroencephalography and Clinical Neurophysiology, 79(3):204–210, 1991.
-\url{https://doi.org/10.1016/0013-4694(91)90138-6}
 
 \end{thebibliography}
 

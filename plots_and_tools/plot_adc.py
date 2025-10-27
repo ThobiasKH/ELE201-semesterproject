@@ -28,7 +28,7 @@ data = deque([0]*BUFFER_SIZE, maxlen=BUFFER_SIZE) # Lovely circular buffer
 plt.style.use('ggplot')       
 fig, ax = plt.subplots()
 line, = ax.plot(range(BUFFER_SIZE), data)
-ax.set_ylim(0, 4095) # Remember to change if we're not sampling 12-bits (prob won't)  
+ax.set_ylim(900, 1100) # Remember to change if we're not sampling 12-bits (prob won't)  
 ax.set_xlabel('Samples')
 ax.set_ylabel('ADC Value')
 ax.set_title('Live ADC Readings')

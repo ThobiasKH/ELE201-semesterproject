@@ -92,7 +92,7 @@ def update(frame):
             # Per-bit FFT
             for i in range(4):
                 bit_array = np.array(lsb_bits_buffer[i])
-                fft_vals = fft(bit_array - np.mean(bit_array))
+                fft_vals = fft(bit_array)
                 fft_mag = np.abs(fft_vals[:BUFFER_SIZE//2])
                 fft_mag /= np.max(fft_mag) if np.max(fft_mag) != 0 else 1
                 freq_lines[i].set_data(freqs, fft_mag)
