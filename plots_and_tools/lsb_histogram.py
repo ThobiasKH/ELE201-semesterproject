@@ -2,6 +2,7 @@ import serial
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from collections import deque
+import numpy as np
 
 # ------------------------
 # Configuration
@@ -23,19 +24,31 @@ bit_labels = ['Bit0', 'Bit1', 'Bit2', 'Bit3']
 
 bars = ax.bar(range(8), [0]*8, color=['skyblue','orange']*4)
 ax.set_xticks(range(8))
-ax.set_xticklabels([f"{b} = 0" if i%2==0 else f"{b} = 1" for i,b in enumerate(bit_labels*2)])
+ax.set_xticklabels([f"{bit_labels[i//2]} = {i%2}" for i in range(8)])
 ax.set_ylim(0, BUFFER_SIZE)
 ax.set_ylabel("Count")
 ax.set_title("Histogram of bottom 4 ADC bits in raw signal")
 
 text_total = ax.text(0.7, 0.95, "Total samples: 0", transform=ax.transAxes)
+text_entropy = ax.text(0.7, 0.90, "Entropy: 0.00 0.00 0.00 0.00", transform=ax.transAxes)
+
+def compute_entropy(bits):
+    if len(bits) == 0:
+        return 0.0
+    p0 = bits.count(0) / len(bits)
+    p1 = bits.count(1) / len(bits)
+    H = 0
+    for p in [p0, p1]:
+        if p > 0:
+            H -= p * np.log2(p)
+    return H
 
 def update(frame):
     global total_samples
     try:
         line_bytes = ser.readline()
         if not line_bytes:
-            return bars
+            return tuple(bars) + (text_total, text_entropy)
 
         line_str = line_bytes.decode('utf-8', errors='ignore').strip()
         if line_str.startswith("ADC raw"):
@@ -45,23 +58,28 @@ def update(frame):
             total_samples += 1
 
             counts = []
+            entropies = []
             for i in range(4):
                 bit_column = [sample[i] for sample in data_bits]
                 count_0 = bit_column.count(0)
                 count_1 = bit_column.count(1)
                 counts.extend([count_0, count_1])
+                entropies.append(compute_entropy(bit_column))
 
             for rect, count in zip(bars, counts):
                 rect.set_height(count)
 
             text_total.set_text(f"Total samples: {total_samples}")
+            text_entropy.set_text("Entropy: " + " ".join(f"{e:.2f}" for e in entropies))
 
     except Exception as e:
         print("Error:", e)
-    return bars
+        return tuple(bars) + (text_total, text_entropy)
+
+    return tuple(bars) + (text_total, text_entropy)
 
 # ------------------------
-# Nice Animation
+# Animation 
 # ------------------------
 ani = FuncAnimation(fig, update, interval=50, cache_frame_data=False)
 plt.show()

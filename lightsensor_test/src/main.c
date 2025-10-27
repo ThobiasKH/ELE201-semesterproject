@@ -113,7 +113,7 @@ int main(void)
       
       int len = sprintf(msg, "ADC raw = %lu\r\n", adc_value);
       HAL_UART_Transmit(&huart3, (uint8_t*)msg, len, HAL_MAX_DELAY);
-      HAL_Delay(250);
+      HAL_Delay(0);
 
     }
   /* USER CODE END 3 */
