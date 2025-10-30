@@ -314,7 +314,57 @@ the following averages:
     \item Average Runs: \(131.990\)
 \end{enumerate}
 
+These results are promising, but we want to employ a more stringent 
+test to analyze the \textbf{RNG}-quality of our 
+\(256\)-bit blocks.
+The employed test suite enforces a rigorous hypothesis testing 
+framework, where the \textbf{null hypothesis} $H_0$ posits 
+the bitstream 
+as being perfectly random, and results are accepted only if the 
+calculated P-value is greater than the significance level 
+$\alpha=0.01$. Specifically, the \textbf{Monobit Frequency Test} 
+assesses the uniformity of $0$s and $1$s by calculating the $Z$-score,
+$$ 
+    Z = |S_n - n/2| / \sqrt{n/4}
+$$
+, where $S_n$ is the sum of ones 
+in the $n=256$ bit sequence, and deriving the P-value via the 
+complementary error function, $P_1 = \text{erfc}(Z/\sqrt{2})$. 
+The \textbf{Runs Test} evaluates the occurrence of contiguous 
+identical 
+bits by calculating the observed number of runs $V_n$ and comparing 
+it against the expected mean $\mu$ and variance $\sigma^2$, 
+again yielding a $Z$-score 
+$$ 
+    Z = |V_n - \mu| / \sqrt{\sigma^2} 
+$$ 
+for the P-value $P_2$. Finally, 
+the \textbf{Serial Overlapping Blocks Test} serves as a strong proxy 
+for Approximate Entropy by using a $\chi^2$ goodness-of-fit 
+statistic 
+$$
+    \chi^2 = \displaystyle\sum_{i=1}^{16} \frac{(C_i - E)^2}{E}
+$$
+across all $2^m=16$ possible $m=4$ bit blocks, 
+with the P-value $P_3$ determined by the Chi-squared survival 
+function $\chi^2.sf(\chi^2, 2^m - 1)$. The block is certified as 
+\emph{random} if and only if $P_1 \geq \alpha \land P_2 \geq \alpha 
+\land P_3 \geq \alpha$, providing a composite measure highly 
+resistant to statistical bias.
 
+With this approach we quickly discover the limitations of 
+using only the raw signal of our LDR to create our numbers.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\linewidth]{./images/RNG_TEST_RAW.png} 
+    \caption{Results from our test suite}
+    \label{fig:256_suite_2}
+\end{figure}
+
+It is clear, from the fact that less than half of our \(256\)-bit 
+numbers pass all our tests, that some more involved processing 
+is required to get high-enough-quality random numbers.
 
 \subsection{Network Design}
 A possible setup:
