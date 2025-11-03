@@ -33,6 +33,12 @@ start_time = 0.0
 pi_history = []
 block_history = []
 
+# --- GLOBAL STATE FOR PERSISTENT LFSR (FIX for the 3.07 bias) ---
+LFSR_STATE_BITS = 256
+# Initialize the state once globally to ensure continuous stream mixing.
+# The state is used by lfsr_whitening and maintained between calls.
+GLOBAL_LFSR_STATE = np.array([1] * 2 + [0] * (LFSR_STATE_BITS - 4) + [1] * 2, dtype=np.uint8)
+
 
 # --- MONTE CARLO UTILITIES ---
 
@@ -109,14 +115,16 @@ def show_final_plot(method, total_points):
         plt.figure(figsize=(10, 6))
         
         # Plot the convergence line
-        plt.plot(block_history, pi_history, label=f'{method.upper()} $\pi$ Estimate', color='#3b82f6', linewidth=2)
+        plt.plot(block_history, pi_history, label=f'{method.upper()}' + r' $\pi$ Estimate', color='#3b82f6', linewidth=2)
         
         # Plot the true value of Pi
-        plt.axhline(PI_TRUE, color='#ef4444', linestyle='--', label=f'True $\pi$ ({PI_TRUE:.5f})')
+        # Re-using .format() to correctly embed the PI_TRUE value in the raw string
+        plt.axhline(PI_TRUE, color='#ef4444', linestyle='--', label=r'True $\pi$ ({PI_TRUE:.5f})'.format(PI_TRUE=PI_TRUE))
         
-        plt.title(f'Monte Carlo $\pi$ Convergence ({method.upper()} Method)', fontsize=16)
+        # Re-adding the method name to the title
+        plt.title(f'Monte Carlo ' + r'$\pi$' + f' Convergence ({method.upper()} Method)', fontsize=16)
         plt.xlabel(f'Blocks Processed ({PLOT_UPDATE_INTERVAL} blocks per point)', fontsize=12)
-        plt.ylabel('Estimated Value of $\pi$', fontsize=12)
+        plt.ylabel(r'Estimated Value of $\pi$', fontsize=12)
         plt.legend()
         plt.grid(True, linestyle=':', alpha=0.7)
         plt.tight_layout()
@@ -146,9 +154,9 @@ def print_pi_report(total_blocks, method, elapsed_time):
     print("-" * 50)
     print(f"| Total Blocks Processed: {total_blocks}")
     print(f"| Total Points Generated: {total_points_generated} (Trials)")
-    print(f"| True Value of π:        {PI_TRUE:.10f}")
-    print(f"| ESTIMATED Value of π:   {estimated_pi:.10f}")
-    print(f"| ABSOLUTE ERROR (|π-E|): {error:.10f}")
+    print(f"| True Value of $\pi$:        {PI_TRUE:.10f}")
+    print(f"| ESTIMATED Value of $\pi$:   {estimated_pi:.10f}")
+    print(f"| ABSOLUTE ERROR (|$\pi$-E|): {error:.10f}")
     print("-" * 50)
     print(f"| Total Elapsed Time:     {elapsed_time:.2f} seconds")
     print("=" * 50)
@@ -171,7 +179,7 @@ def read_serial_line(ser):
             return None
 
 
-# --- POST-PROCESSING METHODS (UNCHANGED, required for map) ---
+# --- POST-PROCESSING METHODS (UPDATED LFSR) ---
 
 def xor_whitening(bits):
     bits = np.array(bits, dtype=np.uint8)
@@ -188,15 +196,34 @@ def von_neumann_corrector(bits):
         consumed_input_len += 2
     return np.array(output, dtype=np.uint8), consumed_input_len
 
-def lfsr_whitening(bits, taps=(15, 14, 13, 12), initial_state=None, state_bits=16):
+def lfsr_whitening(bits, taps=(9, 4, 1), state_bits=256):
+    """
+    LFSR whitening using a 256-bit state and primitive taps (9, 4, 1) 
+    The state is maintained globally to ensure a continuous stream.
+    Returns (output_bits, input_consumed).
+    """
+    global GLOBAL_LFSR_STATE # Access the persistent state
+    
     bits = np.array(bits, dtype=np.uint8)
-    state = np.uint16(initial_state if initial_state is not None else 0xAAAA)
+    state = GLOBAL_LFSR_STATE # Use the global state
+    
     output = []
     for b in bits:
+        # Calculate feedback bit (XOR of taps and the input bit)
         feedback = b
-        for t in taps: feedback ^= (state >> t) & 1
-        state = ((state << 1) | feedback) & ((1 << state_bits) - 1)
+        for t in taps:
+            feedback ^= state[t]
+        
+        # The new output bit is the calculated feedback
         output.append(feedback)
+        
+        # Update the state: Shift all bits and insert the new feedback bit at the MSB position
+        state[:-1] = state[1:]
+        state[-1] = feedback
+        
+    # No need to explicitly set GLOBAL_LFSR_STATE = state as numpy arrays are mutable
+    # and the changes to 'state' (which references GLOBAL_LFSR_STATE) are already reflected.
+        
     return np.array(output, dtype=np.uint8), len(bits)
 
 def distance_xor_mixing(bits, distance):
@@ -242,7 +269,7 @@ def lfsr_then_vn_then_xor(bits):
 # --- MAIN EXECUTION ---
 
 def run_analyzer(method):
-    global block_counter, start_time
+    global block_counter, start_time, GLOBAL_LFSR_STATE 
     
     # Reset globals
     global inside_circle_count, total_points_generated
@@ -252,13 +279,18 @@ def run_analyzer(method):
     pi_history.clear()
     block_history.clear()
     
+    # Re-initialize the LFSR state for a fresh run if an LFSR method is selected
+    if method in ["lfsr", "lfsr_then_xor", "lfsr_then_distance_xor", "lfsr_then_vn", "lfsr_vn_xor"]:
+        GLOBAL_LFSR_STATE = np.array([1] * 2 + [0] * (LFSR_STATE_BITS - 4) + [1] * 2, dtype=np.uint8)
+
     DISTANCE_XOR_DISTANCE = BLOCK_SIZE_BITS // 2
     
     postproc_map = {
         "raw": lambda x: (x, len(x)),
         "xor": xor_whitening,
         "von_neumann": von_neumann_corrector,
-        "lfsr": lfsr_whitening,
+        # Note: lfsr_whitening now uses the global state
+        "lfsr": lambda x: lfsr_whitening(x, taps=(9, 4, 1), state_bits=256), 
         "vn_then_xor": von_neumann_then_xor,
         "lfsr_then_vn": lfsr_then_von_neumann,
         "lfsr_then_xor": lfsr_then_xor,
@@ -323,7 +355,6 @@ def run_analyzer(method):
         end_time = time.time()
         if block_counter > 0:
             print_pi_report(block_counter, method, end_time - start_time)
-            # This will save the file instead of trying to show an interactive plot
             show_final_plot(method, total_points_generated)
 
 

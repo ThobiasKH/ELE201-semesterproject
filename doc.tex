@@ -123,7 +123,7 @@ for a \(12\)-bit ADC with reference voltage \(V_{\text{ref}}\).
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.8\linewidth]{./images/quantization.png} 
-    \caption{Quantization of analog signal.}
+    \caption{Quantization of analog signal \cite{ADC_Image}.}
     \label{fig:quantization} 
 \end{figure}
 
@@ -327,7 +327,7 @@ assesses the uniformity of $0$s and $1$s by calculating the $Z$-score,
 $$ 
     Z = |S_n - n/2| / \sqrt{n/4}
 $$
-, where $S_n$ is the sum of ones 
+where $S_n$ is the sum of ones 
 in the $n=256$ bit sequence, and deriving the P-value via the 
 complementary error function, $P_1 = \text{erfc}(Z/\sqrt{2})$. 
 The \textbf{Runs Test} evaluates the occurrence of contiguous 
@@ -365,6 +365,13 @@ using only the raw signal of our LDR to create our numbers.
 It is clear, from the fact that less than half of our \(256\)-bit 
 numbers pass all our tests, that some more involved processing 
 is required to get high-enough-quality random numbers.
+
+After testing over \(10,000\) blocks we find that we pass 
+the bit-frequency test \(79.2\%\) of the time, 
+runs is passed \(9.36\%\) of the time and the serial overlapping 
+test is passed \(45.11\%\) of the time. This is far below our desired 
+result and suggests that more involved processing is required to 
+get our data up to higher quality.
 
 \subsection{Post-processing} 
 
@@ -458,7 +465,9 @@ a number of different post-processing techniques.
         where \(T \subseteq \{0, \dots, m-1\}\) defines the feedback taps.  
         For example, a primitive polynomial such as 
         \(x^8 + x^6 + x^5 + x^4 + 1\) yields a maximal-length LFSR of 
-        period \(2^8 - 1\).
+        period \(2^8 - 1\). For our purpose we 
+        use the primitive polynomial 
+        \(x^{256} + x^{10} + x^5 + 1\).
 
         To whiten the input sequence \(x_i\), we XOR it into the 
         feedback path:
@@ -476,7 +485,109 @@ a number of different post-processing techniques.
 
 \end{enumerate}
 
-\subsection{Network Design}
+\newpage
+\subsection{Results After Post-Processing}
+Here we present the results from testing our data after 
+post-processing.
+The tests we're performed on at least \(1000\) \(256\)-bit numbers 
+after the respective post-processing techniques. 
+
+\begin{center}
+    \begin{tabular}{|c|c|c|c|}
+        \hline
+        & Monobit freq. Pass Rate & Runs Pass Rate & Serial Overlap Pass Rate 
+        \\ \hline 
+        XOR & \(92.45\%\) & \(12.34\%\) & \(57.58\%\) 
+        \\ \hline
+        Von Neumann & \(64.71\%\) & \(10.78\%\) & \(36.27\%\) 
+        \\ \hline
+        LFSR & \(98.95\%\) & \(22.77\%\) & \(94.66\%\) 
+        \\ \hline
+        LFSR \(\rightarrow \) XOR & 
+        \(98.51\%\) & \(24.19\%\) & \(93.70\%\) 
+        \\ \hline
+        LFSR \(\rightarrow \) Von Neumann & 
+        \(99.98\%\) & \(20.69\%\) & \(94.25\%\) 
+        \\ \hline
+        LFSR \(\rightarrow \) Von Neu. \(\rightarrow\) XOR & 
+        \(99.36\%\) & \(22.53\%\) & \(95.28\%\) 
+        \\ \hline
+    \end{tabular}
+\end{center}
+
+As we can see our post-processing techniques help brin up the pass 
+rates, especially when it comes to the Monobit Frequency test 
+and Serial Overlap test. However we see that the 
+Runs pass rate remains relatively low. Now, this is more of a problem 
+for the purpose of cryptography, but for the purpose of pure 
+random number generation it is less of an immediate issue.
+
+\newpage 
+\section{Experimental Applications}
+Now that we have a resonably high quality source of random numbers 
+we can demonstrate a few applications of these numbers. 
+
+\subsection{Monte Carlo Estimate}
+The Monte Carlo method uses statistical sampling to determine 
+a deterministic result and is one of the most effective 
+ways to visually and numerically test the quality of a random number 
+source. The process involves generating a large number of random 
+points \((x,y) \in [0,1]^2\). 
+
+Given that 
+\[ 
+    \frac{\text{Area if Circle}}{\text{Area of Square}} = 
+    \frac{\frac{1}{4}\pi r^2}{r^2} = \frac{\pi}{4}
+\]
+we can estimate \(\pi\) by generating \(N\) random 
+points in the unit square, count the number of points 
+in the circle, equivalently count the number of points satisfying 
+\[ 
+    x^2 + y^2 \leq 1
+\]
+calculating \(\pi\) as 
+\[ 
+    \pi \approx 4 \frac{N_c}{N}
+\]
+where \(N_c\) denotes the number of points that lie in the inscribed 
+circle.
+
+This process will converge to \(\pi\) as we generate more 
+points. For this process to work we need a uniform and 
+unbiased random number generator since if our 
+RNG is biased, say towards generating points at \((0,0)\), 
+this process will not converge towards \(\pi\). Furhtermore 
+our underlyign random process must be independent such that 
+there is low correlation between a given samples and preceding 
+samples.
+
+For the sake of time we use the \(\text{LFSR} + \text{XOR}\) 
+post-processing as it is the most time-efficient 
+processing method amongst our top performers. 
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\linewidth]{./images/pi_convergence_lfsr_then_xor.png} 
+    \caption{Pi estimate.}
+    \label{fig:pi_estimate}
+\end{figure}
+
+\newpage 
+Through our experimentation we find that our \(\pi\)-estimate 
+converges reasonably quickly when compared to software-based 
+pRNGs. 
+While our estimate diverges a little 
+after around \(20000\) samples we achieved a estimated value of 
+\(3.1467\dots\) after only \(107520\) points generated, yielding 
+an error of around \(0.005\). 
+The real discrepancy when compared with traditional methods is that 
+this simulation took \(1724.98\) seconds where a traditional 
+approach might achieve a similar number of points in a few 
+seconds.
+
+ 
+\newpage 
+\section{Network Design}
 A possible setup:
 \begin{itemize}
     \item Each microcontroller is connected to a local router.
@@ -564,8 +675,18 @@ F. Bagnoli, ``Boolean derivatives and computation of cellular automata,''
 \bibitem{LFSR} “Linear-feedback shift register,” Wikipedia. 
 Available: \url{https://en.wikipedia.org/wiki/Linear-feedback_shift_register}.  
 
+\bibitem{ADC_Image} 
+\textit{Online: HVL - ELE201 Microcontrollers and Data Networks 
+Website},
+\url{https://fjnn.github.io/hvl-ele201/lectures/l5-adc}, 
+Latest access: 03/11/2025
+
 
 \end{thebibliography}
 
 \end{document}
+
+
+
+
 
