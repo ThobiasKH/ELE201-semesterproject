@@ -366,6 +366,116 @@ It is clear, from the fact that less than half of our \(256\)-bit
 numbers pass all our tests, that some more involved processing 
 is required to get high-enough-quality random numbers.
 
+\subsection{Post-processing} 
+
+To try to improve our random-numbers we will implement and test 
+a number of different post-processing techniques.
+
+\begin{enumerate}
+    \item \textbf{XOR Whitening.}
+        XOR Whitening is a simple linear post-processing 
+        technique designed to remove bias and short-range 
+        correlations in binary sequences. 
+
+        Our raw \(4\)-LSB data contains high entropy, but likely 
+        exibits a small DC bias due to the observed bit frequency 
+        and minor autocorrelation. These imperfections 
+        can reduce randomness quality in cryptographic contexts.
+        By XOR-ing adjacent bits or consecutive samples we can 
+        break local correlations and push the bit frequency 
+        closer to \(0.5\), which is a requirement in our more 
+        stringent test suite.
+
+        Given a bit sequence \(x_0,\dots,x_{n-1}\), we compute 
+        a whitened sequence \(y_i\) as 
+        \[ 
+            y_i = x_i \oplus x_{i-1}, \quad (i \geq 1)
+        \]
+        
+        This is equivalent to applying a discrete derivative in 
+        \(\mathbb F_2\) \cite{Bagnoli et al}. Theoretically, if 
+        \(x_i\) and \(x_{i-1}\) have any non-zero bias or 
+        dependence, the XOR removes the common component.
+
+        The resulting sequence has 
+        \[ 
+            P(y_i = 1) = 2p(1-p)
+        \]
+        where \(p = P(x_i = 1)\).
+
+        If \(p \neq 0.5\), this transformation drives 
+        \(P(y_i = 1)\) closer to \(0.5\).
+
+        XOR Whitening is computationally trivial and thus very 
+        suitable for real-time usage, not reducing the bit-rate 
+        significantly. 
+
+    \item \textbf{Von Neumann Corrector.}
+        The Von Neumann corrector is a classical post-processing 
+        algorithm that eliminates bias without assuming any specific 
+        noise model \cite{Yuval}. It was originally proposed by John von Neumann 
+        in 1951 as a way to extract unbiased bits from biased coin flips.
+
+        The algorithm processes the bitstream in non-overlapping pairs:
+        \[
+            (x_0, x_1), (x_2, x_3), \dots
+        \]
+        and outputs:
+        \[
+            y_i = 
+            \begin{cases}
+                0 & \text{if } (x_{2i}, x_{2i+1}) = (0, 1) \\
+                1 & \text{if } (x_{2i}, x_{2i+1}) = (1, 0) \\
+                \text{discard} & \text{if } (x_{2i}, x_{2i+1}) \in \{(0,0), (1,1)\}
+            \end{cases}
+        \]
+        The idea is that if the input bits are independent, the pairs 
+        \((01)\) and \((10)\) occur with equal probability even if the 
+        marginal distribution of \(x_i\) is biased. Hence, the output 
+        is guaranteed to be unbiased, though at the cost of a variable 
+        bit-rate reduction.
+
+        This method is particularly valuable when the bias is strong or 
+        unknown, but independence between successive bits can be assumed.
+        Its simplicity and provable bias removal make it a standard 
+        benchmark in physical random number generator literature. 
+
+    \item \textbf{Linear Feedback Shift Register (LFSR) Mixing.}
+        A Linear Feedback Shift Register (LFSR) is a widely used 
+        structure 
+        for generating and transforming binary sequences with good 
+        statistical properties \cite{analog_devices}. 
+        In our context, we employ a short LFSR 
+        as a \emph{whitening filter} that linearly mixes consecutive 
+        raw bits 
+        to reduce correlations and spectral peaks \cite{LFSR}.
+
+        An LFSR consists of a register of length \(m\) and a feedback 
+        function defined over \(\mathbb F_2\):
+        \[
+            s_{n+m} = \bigoplus_{i \in T} s_{n+i},
+        \]
+        where \(T \subseteq \{0, \dots, m-1\}\) defines the feedback taps.  
+        For example, a primitive polynomial such as 
+        \(x^8 + x^6 + x^5 + x^4 + 1\) yields a maximal-length LFSR of 
+        period \(2^8 - 1\).
+
+        To whiten the input sequence \(x_i\), we XOR it into the 
+        feedback path:
+        \[
+            s_{n+m} = x_n \oplus \bigoplus_{i \in T} s_{n+i}.
+        \]
+        This injects entropy from the measured signal into a 
+        well-distributed linear recurrence, effectively smoothing 
+        out local correlations and enhancing bit balance.
+
+        Unlike XOR Whitening, LFSR mixing has memory and thus acts 
+        as a linear filter over multiple past samples. The resulting 
+        bitstream exhibits flatter spectra and higher effective entropy, 
+        while retaining full bit-rate. 
+
+\end{enumerate}
+
 \subsection{Network Design}
 A possible setup:
 \begin{itemize}
@@ -438,6 +548,21 @@ G. Gundersen,
 Blog post, 01 February 2019.
 \url{https://gregorygundersen.com/blog/2019/02/01/clt/}
 
+\bibitem{Bagnoli et al}
+F. Bagnoli, ``Boolean derivatives and computation of cellular automata,'' 
+  \textit{Dipartimento di Matematica Applicata, Università di Firenze, Firenze, I-50139, Italy; 
+  also INFM and INFN, sezione di Firenze}, 1999. 
+  Available: \url{https://arxiv.org/pdf/cond-mat/9912353.pdf}.
+
+\bibitem{Yuval} Yuval Peres, 
+“Iterating von Neumann’s Procedure for Extracting Random Bits,” 
+\emph{Annals of Statistics}, vol. 20(1), 1992.  
+
+\bibitem{analog_devices} Analog Devices, 
+“Random number generation using LFSR,” Design Note, 200X.  
+
+\bibitem{LFSR} “Linear-feedback shift register,” Wikipedia. 
+Available: \url{https://en.wikipedia.org/wiki/Linear-feedback_shift_register}.  
 
 
 \end{thebibliography}
