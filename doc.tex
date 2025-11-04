@@ -26,10 +26,8 @@ hardware-based true random number generator (TRNG).
 The data will be sent via serial connection to a computer 
 to analyze the quality of the data.
 
-We will combine theory from information theory, probability, 
-signal processing, and networking to assess both the quality of 
-randomness 
-and how such a system could integrate into a distributed architecture.
+We will combine theory from information theory, probability and 
+signal processing to assess the randomness of our data. 
 
 We will discuss:
 \begin{itemize}
@@ -37,7 +35,7 @@ We will discuss:
     \item Implementation and data transfer.
     \item Statistical analysis and randomness testing.
     \item Viability discussion and possible improvements.
-    \item Network design for scaling such systems.
+    \item Network design.
 \end{itemize}
 
 \newpage
@@ -59,6 +57,14 @@ and discussed in \cite{Gray1990,StatisticShowTo}).
 Entropy is a central meassure in information theory pertaining 
 to the randomness of data and it will be referenced extensively 
 throughout this text.
+For our purposes of generating random sequences of bits, entropy 
+becomes a surprisingly intuitive meassure. In the case of a 
+bit-string, it will have maximum entropy if and only if there 
+is a \(50\%\) chance for every given bit in the string to be 
+\(0\) or \(1\) and the proof only requires a bit of 
+differential calculus.
+Thus we would want our source of random numbers to exhibit 
+the maximum entropy possible for a bit-string of the given length.
 
 \subsection{True vs. Pseudo Randomness}
 A pseudo-random number generator (PRNG) produces deterministic 
@@ -194,7 +200,7 @@ noise.
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.6\linewidth]{./images/WIRING_DIAGRAM_LIGHT.png} 
+    \includegraphics[width=0.6\linewidth]{./images/WIRING_DIAGRAM2.png} 
     \caption{Diagram}
     \label{fig:wire_diagram} 
 \end{figure}
@@ -217,7 +223,7 @@ over time.
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.9\linewidth]{./images/LIVE_READINGS_SMALL_WINDOW.png} 
-    \caption{Plot of the raw signal over time}
+    \caption{Raw signal plot showing small fluctuations.}
     \label{fig:raw_signal_plot} 
 \end{figure}
 
@@ -241,7 +247,7 @@ bit in the \(4\) LSBs is \(0\) or \(1\).
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.9\linewidth]{./images/HISTOGRAM_WITH_ENTROPY.png} 
-    \caption{Histogram of 4 LSBs with photoresistor covered}
+    \caption{4 LSB histogram showing exhibiting entropy.}
     \label{fig:histogram_LSB_covered}
 \end{figure}
 
@@ -298,7 +304,7 @@ determining the quality of the \(256\)-bit number.
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.9\linewidth]{./images/256SUITE_PLOT.png} 
-    \caption{Readings of various metrics in 256-bit number.}
+    \caption{Readings showing good results from 256-bit numbers.}
     \label{fig:256_suite}
 \end{figure}
 
@@ -325,7 +331,7 @@ calculated P-value is greater than the significance level
 $\alpha=0.01$. Specifically, the \textbf{Monobit Frequency Test} 
 assesses the uniformity of $0$s and $1$s by calculating the $Z$-score,
 $$ 
-    Z = |S_n - n/2| / \sqrt{n/4}
+Z = \frac{|S_n - n/2|}{\sqrt{n/4}}
 $$
 where $S_n$ is the sum of ones 
 in the $n=256$ bit sequence, and deriving the P-value via the 
@@ -336,7 +342,7 @@ bits by calculating the observed number of runs $V_n$ and comparing
 it against the expected mean $\mu$ and variance $\sigma^2$, 
 again yielding a $Z$-score 
 $$ 
-    Z = |V_n - \mu| / \sqrt{\sigma^2} 
+Z = \frac{|V_n - \mu|}{\sqrt{\sigma^2}} 
 $$ 
 for the P-value $P_2$. Finally, 
 the \textbf{Serial Overlapping Blocks Test} serves as a strong proxy 
@@ -352,13 +358,30 @@ function $\chi^2.sf(\chi^2, 2^m - 1)$. The block is certified as
 \land P_3 \geq \alpha$, providing a composite measure highly 
 resistant to statistical bias.
 
+In our statistical testing, we apply the \textbf{Z-test} 
+rather than the
+\textbf{T-test}. This choice is justified because 
+our bitstreams contain
+a large number of independent samples ($n = 256$ or more), 
+which allows
+us to assume that the sampling distribution of the mean is 
+approximately
+normal by the Central Limit Theorem. The population variance is known
+(under $H_0$) to be $\sigma^2 = 0.25$ for Bernoulli($p=0.5$) data, so a
+Z-test is the appropriate parametric test. In contrast, 
+a T-test would be
+necessary only if $\sigma^2$ were unknown or estimated from 
+small samples.
+Our approach incorporates a few of the many tests employed 
+by the NIST SP 800-22 test suite \cite{NIST}.
+
 With this approach we quickly discover the limitations of 
 using only the raw signal of our LDR to create our numbers.
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.9\linewidth]{./images/RNG_TEST_RAW.png} 
-    \caption{Results from our test suite}
+    \caption{Test suite results showing high fail-rate.}
     \label{fig:256_suite_2}
 \end{figure}
 
@@ -492,7 +515,7 @@ post-processing.
 The tests we're performed on at least \(1000\) \(256\)-bit numbers 
 after the respective post-processing techniques. 
 
-\begin{center}
+\begin{table}[h!]
     \begin{tabular}{|c|c|c|c|}
         \hline
         & Monobit freq. Pass Rate & Runs Pass Rate & Serial Overlap Pass Rate 
@@ -513,7 +536,9 @@ after the respective post-processing techniques.
         \(99.36\%\) & \(22.53\%\) & \(95.28\%\) 
         \\ \hline
     \end{tabular}
-\end{center}
+    \caption{Pass Rates for processed numbers.}
+    \label{suite_results}
+\end{table}
 
 As we can see our post-processing techniques help brin up the pass 
 rates, especially when it comes to the Monobit Frequency test 
@@ -568,7 +593,7 @@ processing method amongst our top performers.
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.8\linewidth]{./images/pi_convergence_lfsr_then_xor.png} 
-    \caption{Pi estimate.}
+    \caption{Pi estimate converging quickly to low error.}
     \label{fig:pi_estimate}
 \end{figure}
 
@@ -587,45 +612,140 @@ seconds.
 
  
 \newpage 
+
 \section{Network Design}
-A possible setup:
+
+In practice, a hardware RNG based on microcontrollers can be deployed 
+as a distributed network of entropy sources. Each node contributes 
+independent random samples to a central entropy pool. This architecture 
+is attractive because it improves fault tolerance and aggregate entropy 
+through diversity of physical sources (e.g. temperature, light, or 
+electrical noise variations across devices).
+
+\subsection{Example Network Topology}
+
+We consider a small local network consisting of:
 \begin{itemize}
-    \item Each microcontroller is connected to a local router.
-    \item A dedicated subnet for sensor nodes (e.g., 192.168.10.0/24).
-    \item Central analysis server on a separate subnet.
+    \item 1 Central server (entropy collector and analysis node).
+    \item 4 STM32 RNG sensor nodes.
+    \item 1 router connecting them in a star topology.
 \end{itemize}
 
-\subsection{Subnetting and Addressing}
-We show how to subnet the network efficiently:
-\begin{itemize}
-    \item Example: dividing a /24 into four /26 subnets.
-    \item Assigning IP ranges for sensors, analysis nodes, and administration.
-\end{itemize}
+The network is built on the private IPv4 block \texttt{192.168.10.0/24}.  
+To organize traffic and reduce broadcast load, we divide it into 
+smaller subnets using /26 masks (each supporting up to 62 hosts).
 
-\subsection{Data Security and Transmission Integrity}
-We briefly discuss:
-\begin{itemize}
-    \item Packet integrity verification (CRC or checksum).
-    \item Optional encryption for data in transit.
-    \item Synchronization and time-stamping for accurate sampling.
-\end{itemize}
+\begin{table}[h!]
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Subnet} & \textbf{Address Range} & \textbf{Purpose} \\
+\hline
+\texttt{192.168.10.0/26} & 192.168.10.1 -- 192.168.10.62 & Sensor nodes (RNG units) \\
+\texttt{192.168.10.64/26} & 192.168.10.65 -- 192.168.10.126 & Central server + analysis tools \\
+\texttt{192.168.10.128/26} & 192.168.10.129 -- 192.168.10.190 & Administrative access / test devices \\
+\texttt{192.168.10.192/26} & 192.168.10.193 -- 192.168.10.254 & Reserved for future expansion \\
+\hline
+\end{tabular}
+\caption{Example subnetting scheme.}
+\label{ips}
+\end{table}
+
+Each STM32 node communicates with the central server using UDP packets 
+to minimize transmission overhead. The payloads consist of 256-bit 
+entropy blocks accompanied by a timestamp and CRC checksum:
+\[
+    [\text{HEADER} \,|\, \text{TIMESTAMP} \,|\, \text{256-bit DATA} \,|\, \text{CRC16}]
+\]
+
+\subsection{Transmission and Synchronization}
+
+UDP transmission ensures low-latency updates, 
+while the server performs 
+redundancy checks by verifying integrity.  
+
+A small excerpt of the configuration might look like this:
+\begin{verbatim}
+Server IP: 192.168.10.70
+Sensor_1 IP: 192.168.10.10
+Sensor_2 IP: 192.168.10.11
+...
+UDP Port: 4000
+\end{verbatim}
+
+This modular layout allows the system to scale by simply allocating new 
+subnets or extending address ranges. In larger deployments, several 
+microcontroller clusters could feed entropy into a regional collector, 
+forming a multi-layer “entropy network” for research or security systems.
 
 \newpage
+
 \section{Conclusion}
-We summarize:Fundamentals of Precision ADC
-Noise Analysis
-\begin{itemize}
-    \item Theoretical feasibility of analog-sensor-based TRNGs.
-    \item Experimental results and limitations.
-    \item Potential for distributed entropy networks.
-\end{itemize}
+
+This project demonstrates the theoretical and experimental 
+feasibility of
+using analog noise from sensors, specifically a photoresistor 
+connected to
+an STM32 microcontroller, as a source of physical entropy for a
+hardware
+true random number generator (TRNG). By isolating and sampling the 
+least
+significant bits of ADC readings, we captured 
+the stochastic component of
+electronic noise and quantified its entropy. 
+Statistical and information-
+theoretic analysis confirmed that while the raw data exhibited 
+measurable
+randomness, post-processing was essential to achieve high-quality 
+output.
+
+Through XOR Whitening, Von Neumann correction, and LFSR-based mixing, 
+we
+significantly improved bit balance and independence, with the combined
+LFSR→Von Neumann→XOR pipeline producing randomness that passes most
+stringent tests. The Monte Carlo simulation of $\pi$ demonstrated 
+that the
+generated random numbers behave statistically as expected, albeit with
+performance constraints due to serial data transfer rates.
+
+A simple but scalable network architecture was also proposed, 
+showing how
+multiple microcontroller nodes could contribute entropy to a 
+central pool
+over standard IP networks. This opens the door to distributed entropy
+networks and low-cost, scalable random number generation systems.
 
 \subsection{Future Work}
-\begin{itemize}
-    \item Hardware whitening circuits and amplification.
-    \item FPGA or ASIC implementations.
-    \item Scaling to larger networks and entropy pooling.
-\end{itemize}
+This project is ripe with various future ideas and hypothesies 
+to test. For one we may wish to gather more statistically significant 
+data, running more numbers through our various test suites. 
+
+To achieve this we can address data generation speed, tackling 
+the problem of being able to generate and process more numbers 
+in a given time interval than we are at the moment. 
+To do this there are many optimizations we can make, like improving 
+our testing environments or using top-of-the-line software 
+like NIST SP 800-22 or Dieharder. 
+Post-processing steps like LFSR can be done 
+in hardware to lessen computational strain. 
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\linewidth]{./images/LFSR_WIRING.jpg} 
+    \caption{LFSR Wiring diagram.}
+    \label{fig:lfsr_wiring}
+\end{figure}
+
+We can elucidate and justify in a more rigorous way, why 
+we are justified in believeing that electrical noise 
+is a source of high-entropy and thereby a good source 
+for random number generation. By doing more stringent testing 
+we can address the application of cryptography, where 
+more stringent requirements for our data may need to be met. 
+
+In addressing many of these issues, and showing that we 
+have a source of randomness valuable for cryptographic applications, 
+we could address cost and deployment complexity for use by 
+private and public interests. 
 
 \newpage
 \begin{thebibliography}{99}  
@@ -680,6 +800,22 @@ Available: \url{https://en.wikipedia.org/wiki/Linear-feedback_shift_register}.
 Website},
 \url{https://fjnn.github.io/hvl-ele201/lectures/l5-adc}, 
 Latest access: 03/11/2025
+
+\bibitem{NIST}
+A. Rukhin et al., 
+\textit{A Statistical Test Suite for Random and Pseudorandom Number Generators for Cryptographic Applications, NIST Special Publication 800-22},
+Rev. 1a, Apr. 2010. [Online]. 
+Avaliable: \url{https://doi.org/10.6028/NIST.SP.800-22r1a}
+
+\bibitem{LFSR_IMAGE}
+Figure 8: 
+\textit{LFSR Feedback connection diagram (from Devari et al.),
+2024, reproduced under CC BY-NC-ND 4.0 license).}
+Source: Devari, A., Kumari, A., Kuchal, P., \& Verma, C., (2024). 
+\textit{Sequential Logic circuit gold codes for electronics 
+and communication technologies. MethodsX, 12(1), 102602.}
+\url{https://doi.org/10.1016/j.mex.2024.102602}
+
 
 
 \end{thebibliography}
